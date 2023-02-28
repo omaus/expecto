@@ -28,9 +28,15 @@ let writeNUnitSummary file (summary: TestRunSummary) =
     totalTests
     |> Seq.sortByDescending (fun (_,test) -> test.result.order,test.duration.TotalSeconds)
     |> Seq.map (fun (flatTest, test) ->
+      // flatTest.name string list gets truncated when given to XAttribute, therefore the list gets folded into a single string
+      let fullnameString = 
+        flatTest.name 
+        |> List.fold (fun acc s -> acc + s + "; " ) "[ "
+        |> fun s -> s[.. String.length s - 3] + " ]"
+
       let element =
         XElement(XName.Get "test-case",
-          XAttribute(XName.Get "name", flatTest.name))
+          XAttribute(XName.Get "name", fullnameString))
       let addAttribute name (content: string) =
         element.Add(XAttribute(XName.Get name, content))
 
@@ -130,6 +136,11 @@ let writeJUnitSummary file (summary: Impl.TestRunSummary) =
     totalTests
     |> Seq.sortByDescending (fun (_,test) -> test.result.order,test.duration.TotalSeconds)
     |> Seq.map (fun (flatTest, test) ->
+      // flatTest.name string list gets truncated when given to XAttribute, therefore the list gets folded into a single string
+      let fullnameString = 
+        flatTest.name 
+        |> List.fold (fun acc s -> acc + s + "; " ) "[ "
+        |> fun s -> s[.. String.length s - 3] + " ]"
       let content: XObject[] =
         let makeMessageNode messageType (message: string) =
           XElement(XName.Get messageType,
@@ -145,7 +156,7 @@ let writeJUnitSummary file (summary: Impl.TestRunSummary) =
 
       XElement(XName.Get "testcase",
         [|
-          yield XAttribute(XName.Get "name", flatTest.name) :> XObject
+          yield XAttribute(XName.Get "name", fullnameString) :> XObject
           yield XAttribute(XName.Get "time",
             System.String.Format(CultureInfo.InvariantCulture,
               "{0:0.000}", test.duration.TotalSeconds)) :> XObject
